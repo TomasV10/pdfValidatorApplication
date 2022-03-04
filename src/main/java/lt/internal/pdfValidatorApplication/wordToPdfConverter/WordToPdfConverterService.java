@@ -95,13 +95,24 @@ public class WordToPdfConverterService implements FilesStorageService{
                         .map(file -> convertWordToPdf(file, counter))
                         .collect(Collectors.toList());
 
-
             printConversionsResults(counter);
-//            List<PdfMessages> validatorMsgList =  PdfValidatorService.validatePdfDocuments(root);
-        return messagesList;
+
+            List<PdfMessages> validatorMsgList =  PdfValidatorService.validatePdfDocuments(root, fileName);
+            return mergeBothListToOne(messagesList, validatorMsgList);
         }catch (IOException e) {
             throw new IllegalArgumentException(e);
         }
+    }
+
+    private static List<PdfMessages> mergeBothListToOne(List<PdfMessages> messagesList, List<PdfMessages> validatorMsgList) {
+        for(PdfMessages msg : messagesList){
+            for(PdfMessages message : validatorMsgList){
+                if(msg.getFileName().equals(message.getFileName())){
+                    message.getMessages()
+                            .forEach(msg::addMessage);
+                }
+            }
+        }return messagesList;
     }
 
     private Resource checkIfFileExist(Resource resource) {
@@ -208,8 +219,7 @@ public class WordToPdfConverterService implements FilesStorageService{
      * @param source is .doc or .docx file name
      */
 
-    private static String changeExtensionToPdf(String source) {
-        System.out.println("change pdf extension");
+    public static String changeExtensionToPdf(String source) {
         return source.replaceFirst("[.][^.]+$", "")+ ".pdf";
     }
 

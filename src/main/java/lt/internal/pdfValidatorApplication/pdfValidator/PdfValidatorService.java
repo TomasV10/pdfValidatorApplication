@@ -4,10 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import lt.internal.pdfValidatorApplication.wordToPdfConverter.PdfMessages;
@@ -20,6 +17,7 @@ import org.apache.pdfbox.rendering.PDFRenderer;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+
 @Service
 public class PdfValidatorService {
 
@@ -28,7 +26,7 @@ public class PdfValidatorService {
 	private static final int A4_FORMAT_WIDTH = 595;
 	private static final int A4_FORMAT_HEIGHT = 842;
 
-	public static List<PdfMessages> validatePdfDocuments(Path baseDir) {
+	public static List<PdfMessages> validatePdfDocuments(Path baseDir, Optional<String> fileName) {
 //		if(!WordToPdfConverterService.isBaseDirectoryValid(baseDir)) return;
 		long start = System.currentTimeMillis();
 		try  {
@@ -37,6 +35,7 @@ public class PdfValidatorService {
 					.filter(p -> !Files.isDirectory(p))
 					.map(p -> p.toString().toLowerCase())
 					.filter(f -> f.endsWith(ALLOWED_EXTENSION))
+					.filter(filePath -> doesFileNameMatch(filePath, fileName))
 					.map(file -> validatePdfDocument(file))
 						.collect(Collectors.toList());
 		return messagesList;
@@ -75,7 +74,7 @@ public class PdfValidatorService {
 				 marginValidator.validate(pdfRenderer, document, pageNr, validationErrors);
 				 }
 			 }
-			 writeResultsToTxtFile(document, msg, notEmbeddedFontList, pageNumbers, validationErrors);
+			 returnValidationResults(document, msg, notEmbeddedFontList, pageNumbers, validationErrors);
 
 			 document.close();
 			 return msg;
@@ -85,12 +84,20 @@ public class PdfValidatorService {
 		}
 	}
 
+	private static boolean doesFileNameMatch(String filePath, Optional<String>fileName){
+		return fileName
+				.map(String::toLowerCase)
+				.map(nameOfFile -> nameOfFile.replaceFirst("[.][^.]+$", "")+ ".pdf")
+				.map(filePath::endsWith)
+				.orElse(true);
+	}
+
 	/*
 	 * This method is responsible for result printing.
 	 */
 
-	private static void writeResultsToTxtFile(PDDocument document, PdfMessages msg, Set<String> notEmbeddedFontList,
-															List<Integer> pageNumbers, ValidationErrors validationErrors) {
+	private static void returnValidationResults(PDDocument document, PdfMessages msg, Set<String> notEmbeddedFontList,
+												List<Integer> pageNumbers, ValidationErrors validationErrors) {
 
 		if(notEmbeddedFontList.isEmpty() && pageNumbers.isEmpty() && validationErrors.getHeader().isEmpty()
 				&& validationErrors.getFooter().isEmpty()) {

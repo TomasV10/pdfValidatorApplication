@@ -5,7 +5,7 @@ import java.util.List;
 
 public class PdfMessages {
     private String fileName;
-    private List<String> errors = new ArrayList<>();
+    private List<String> messages = new ArrayList<>();
     private int statusCode;
 
     public PdfMessages(String fileName) {
@@ -20,17 +20,22 @@ public class PdfMessages {
         this.fileName = fileName;
     }
 
-    public List<String> getErrors() {
-        return errors;
+    public List<String> getMessages() {
+        return messages;
     }
 
-    public void setErrors(List<String> errors) {
-        this.errors = errors;
+    public void setMessages(List<String> messages) {
+        this.messages = messages;
     }
 
     public List<String>addMessage(String anyMessage){
-        errors.add(anyMessage);
-        return errors;
+        messages.add(anyMessage);
+        return messages;
+    }
+
+    public List<String>addMessages(String anyMessage){
+        messages.add(anyMessage);
+        return messages;
     }
 
     public int getStatusCode() {
@@ -45,7 +50,7 @@ public class PdfMessages {
     public String toString() {
         return "PdfMessages{" +
                 "fileName='" + fileName + '\'' +
-                ", errors=" + errors +
+                ", errors=" + messages +
                 ", statusCode=" + statusCode +
                 '}';
     }

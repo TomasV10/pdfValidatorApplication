@@ -33,10 +33,12 @@ public class WordToPdfConverterController {
             try {
                 wordToPdfConverterService.saveFiles(file);
                 message = "Uploaded the file successfully";
-                return ResponseEntity.status(HttpStatus.OK).body(new ResponseMessage(file.getOriginalFilename(), Collections.singletonList(message), HttpStatus.OK.value()));
+                return ResponseEntity.status(HttpStatus.OK).body(new ResponseMessage(file.getOriginalFilename(),
+                        Collections.singletonList(message), HttpStatus.OK.value()));
             } catch (Exception e) {
                 message = "Could not upload the file";
-                return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(new ResponseMessage(file.getOriginalFilename(), Collections.singletonList(message), HttpStatus.OK.value()));
+                return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(new ResponseMessage(file.getOriginalFilename(),
+                        Collections.singletonList(message), HttpStatus.OK.value()));
             }
         }
         message = "Please upload a .doc or .docx file!";
@@ -49,7 +51,7 @@ public class WordToPdfConverterController {
            List<ResponseMessage>responseMessages = pdfMessages.stream()
                    .map(er -> {
                        String nameOfFile = er.getFileName();
-                       List<String>msg = er.getErrors();
+                       List<String>msg = er.getMessages();
                        int statusCode = er.getStatusCode();
                        return new ResponseMessage(nameOfFile, msg, statusCode);
                    })

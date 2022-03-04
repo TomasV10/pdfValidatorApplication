@@ -21,11 +21,6 @@ public class ResponseMessage {
         this.statusCode = statusCode;
     }
 
-    public ResponseMessage(String fileName, List<String> message) {
-        this.fileName = fileName;
-        this.message = message;
-    }
-
     public String getFileName() {
         return fileName;
     }
