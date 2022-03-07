@@ -5,20 +5,17 @@ import java.util.List;
 public class ResponseMessage {
     private String fileName;
     private List<String> message;
-    private int statusCode;
+    private boolean isPdfValid;
+    private boolean isConvertedToPdf;
+    private String url = " ";
 
-    public ResponseMessage() {
-    }
-
-    public ResponseMessage(List<String> message, int statusCode) {
-        this.message = message;
-        this.statusCode = statusCode;
-    }
-
-    public ResponseMessage(String fileName, List<String> message, int statusCode) {
+    public ResponseMessage(String fileName, List<String> message, boolean isPdfValid,
+                                                                boolean isConvertedToPdf, String url) {
         this.fileName = fileName;
         this.message = message;
-        this.statusCode = statusCode;
+        this.isPdfValid = isPdfValid;
+        this.isConvertedToPdf = isConvertedToPdf;
+        this.url = url;
     }
 
     public String getFileName() {
@@ -37,11 +34,27 @@ public class ResponseMessage {
         this.message = message;
     }
 
-    public int getStatusCode() {
-        return statusCode;
+    public boolean isPdfValid() {
+        return isPdfValid;
     }
 
-    public void setStatusCode(int statusCode) {
-        this.statusCode = statusCode;
+    public void setPdfValid(boolean pdfValid) {
+        isPdfValid = pdfValid;
+    }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
+    public boolean isConvertedToPdf() {
+        return isConvertedToPdf;
+    }
+
+    public void setConvertedToPdf(boolean convertedToPdf) {
+        isConvertedToPdf = convertedToPdf;
     }
 }
