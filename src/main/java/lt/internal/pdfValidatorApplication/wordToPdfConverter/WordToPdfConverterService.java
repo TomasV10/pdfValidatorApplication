@@ -28,12 +28,6 @@ public class WordToPdfConverterService implements FilesStorageService{
     private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList(".doc", ".docx"); //List of allowed extensions
     private static final Path root = Paths.get("uploads").toAbsolutePath();
 
-    private final PdfValidatorService pdfValidatorService;
-
-    public WordToPdfConverterService(PdfValidatorService pdfValidatorService) {
-        this.pdfValidatorService = pdfValidatorService;
-    }
-
     @Override
     public void createDirectoryForUploadedFiles() {
         try {
@@ -65,8 +59,6 @@ public class WordToPdfConverterService implements FilesStorageService{
         }
     }
 
-
-
     public Stream<Path> retrieveAllFiles() {
         try {
             return Files.walk(this.root, 1)
@@ -83,36 +75,70 @@ public class WordToPdfConverterService implements FilesStorageService{
     }
 
     public static List<PdfMessages> convertAllDocFilesInDirectoryToPdf(Optional<String>fileName) {
-//        if(!isBaseDirectoryValid(root)) return;
+        isBaseDirectoryValid(root);
         ConversionsCounter counter = new ConversionsCounter();
         try  {
             List<PdfMessages> messagesList =
                 Files.walk(root, 1)
                         .filter(p -> !Files.isDirectory(p))
                         .map(p -> p.toString().toLowerCase())
-                        .filter(path -> isOneOfAllowedExtensions(path))
+                        .filter(WordToPdfConverterService::isOneOfAllowedExtensions)
                         .filter(filePath -> doesFileNameMatch(filePath, fileName))
-                        .map(file -> convertWordToPdf(file, counter))
+                        .map(file -> convertAndValidatePdf(file, counter))
                         .collect(Collectors.toList());
 
             printConversionsResults(counter);
 
-            List<PdfMessages> validatorMsgList =  PdfValidatorService.validatePdfDocuments(root, fileName);
-            return mergeBothListToOne(messagesList, validatorMsgList);
+            return doesFileExist(messagesList,fileName);
         }catch (IOException e) {
             throw new IllegalArgumentException(e);
         }
     }
 
-    private static List<PdfMessages> mergeBothListToOne(List<PdfMessages> messagesList, List<PdfMessages> validatorMsgList) {
-        for(PdfMessages msg : messagesList){
-            for(PdfMessages message : validatorMsgList){
-                if(msg.getFileName().equals(message.getFileName())){
-                    message.getMessages()
-                            .forEach(msg::addMessage);
-                }
-            }
-        }return messagesList;
+    public static PdfMessages convertWordToPdf(String source, ConversionsCounter counter) {
+        PdfMessages msg = new PdfMessages(getFileNameWithoutPath(source));
+        System.out.println("Word to PDF started...");
+        long start = System.currentTimeMillis();
+        try {
+            ActiveXComponent app = createActiveXComponent();
+
+            Dispatch doc = openingDocFile(source, app);
+
+            String pathOfFileWithPdfExtension = changeExtensionToPdf(source);
+
+            saveConvertedFile(pathOfFileWithPdfExtension, doc);
+            counter.increaseSuccessfulConversionsCount();
+            closeActiveXComponent(app);
+            msg.setFileName(changeExtensionToPdf(source));
+            msg.addMessage("Converted file successfully");
+            msg.setConvertedToPdf(true);
+            return msg;
+        } catch (Exception e) {
+            msg.addMessage("Error converting Word to PDF:" + e.getMessage());
+            counter.increaseFailedConversionsCount();
+            return msg;
+        } finally {
+            long end = System.currentTimeMillis();
+            System.out.println("Time required:" + (end-start) + "ms");
+        }
+    }
+
+    private static PdfMessages convertAndValidatePdf(String file, ConversionsCounter counter){
+        PdfMessages conversion = convertWordToPdf(file, counter);
+        System.out.println(conversion);
+        if(conversion.isConvertedToPdf()){
+            return PdfValidatorService.validatePdfDocument(conversion);
+        }else return conversion;
+    }
+
+    private static List<PdfMessages> doesFileExist(List<PdfMessages>messagesList, Optional<String>fileName){
+        PdfMessages msg = new PdfMessages(fileName.toString());
+        if(messagesList.isEmpty() && fileName != null){
+            msg.setFileName(fileName.get());
+            msg.addMessage("File not found");
+            messagesList.add(msg);
+            return messagesList;
+        }else return messagesList;
     }
 
     private Resource checkIfFileExist(Resource resource) {
@@ -147,32 +173,7 @@ public class WordToPdfConverterService implements FilesStorageService{
      * @param counter - counts successful and failed conversions
      */
 
-    private static PdfMessages convertWordToPdf(String source, ConversionsCounter counter) {
-        PdfMessages msg = new PdfMessages(getFileNameWithoutPath(changeExtensionToPdf(source)));
-        System.out.println("Word to PDF started...");
-        long start = System.currentTimeMillis();
-        try {
-            ActiveXComponent app = createActiveXComponent();
 
-            Dispatch doc = openingDocFile(source, app);
-
-            String pathOfFileWithPdfExtension = changeExtensionToPdf(source);
-
-            saveConvertedFile(pathOfFileWithPdfExtension, doc);
-            counter.increaseSuccessfulConversionsCount();
-            closeActiveXComponent(app);
-            msg.addMessage("Converted file successfully");
-            msg.setStatusCode(HttpStatus.OK.value());
-            return msg;
-        } catch (Exception e) {
-            msg.addMessage("Error converting Word to PDF:" + e.getMessage());
-            msg.setStatusCode(HttpStatus.BAD_REQUEST.value());
-            return msg;
-        } finally {
-            long end = System.currentTimeMillis();
-            System.out.println("Time required:" + (end-start) + "ms");
-        }
-    }
 
     private static String getFileNameWithoutPath(String path) {
         return path.replaceAll("^.*[\\/\\\\]", "");
@@ -264,13 +265,13 @@ public class WordToPdfConverterService implements FilesStorageService{
      * Checks base path if it exists and if its a directory
      */
 
-    public static boolean isBaseDirectoryValid(Path baseDir) {
+    public static void isBaseDirectoryValid(Path baseDir) {
         if (!Files.exists(baseDir)) {
             System.err.println("Base path does not exist " + baseDir);
-            return false;
+            throw new IllegalArgumentException("Base path does not exist " + baseDir);
         }else if(!Files.isDirectory(baseDir)) {
             System.err.println("Base path must be a directory! " + baseDir);
-            return false;
-        }return true;
+            throw new IllegalArgumentException("Base path must be a directory! " + baseDir);
+        }
     }
 }

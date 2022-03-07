@@ -2,20 +2,18 @@ package lt.internal.pdfValidatorApplication.pdfValidator;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import lt.internal.pdfValidatorApplication.wordToPdfConverter.PdfMessages;
+import lt.internal.pdfValidatorApplication.wordToPdfConverter.WordToPdfConverterController;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDResources;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.rendering.PDFRenderer;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder;
 
 
 @Service
@@ -26,41 +24,19 @@ public class PdfValidatorService {
 	private static final int A4_FORMAT_WIDTH = 595;
 	private static final int A4_FORMAT_HEIGHT = 842;
 
-	public static List<PdfMessages> validatePdfDocuments(Path baseDir, Optional<String> fileName) {
-//		if(!WordToPdfConverterService.isBaseDirectoryValid(baseDir)) return;
-		long start = System.currentTimeMillis();
-		try  {
-			List<PdfMessages>messagesList =
-				Files.walk(baseDir, 1)
-					.filter(p -> !Files.isDirectory(p))
-					.map(p -> p.toString().toLowerCase())
-					.filter(f -> f.endsWith(ALLOWED_EXTENSION))
-					.filter(filePath -> doesFileNameMatch(filePath, fileName))
-					.map(file -> validatePdfDocument(file))
-						.collect(Collectors.toList());
-		return messagesList;
-       }catch (IOException e) {
-        	throw new IllegalArgumentException(e);
-		}finally {
-			long end = System.currentTimeMillis();
-			System.out.println("Time required:" + (end-start) / 1000 + "s");
-		}
-	}
-
 	/*
 	 * Validates PDF document according to specified requirements
 	 */
 
-	public static PdfMessages validatePdfDocument(String path) {
-		PdfMessages msg = new PdfMessages(getFileNameWithoutPath(path));
+	public static PdfMessages validatePdfDocument(PdfMessages msg) {
 		Set<String>notEmbeddedFontList = new HashSet<>();
 		List<Integer>pageNumbers = new ArrayList<>();
 		ValidationErrors validationErrors = new ValidationErrors();
 		MarginsOfPDFValidator marginValidator = new MarginsOfPDFValidator();
 		System.out.println("PDF document validation started...");
 		try {
-			System.out.println("Loading PDF document " + path);
-			PDDocument document = PDDocument.load(new File(path));
+			System.out.println("Loading PDF document " + msg.getFileName());
+			PDDocument document = PDDocument.load(new File(msg.getFileName()));
 			PDFRenderer pdfRenderer = new PDFRenderer(document);
 
 			 for(int pageNr = 0; pageNr < document.getNumberOfPages(); pageNr++) {
@@ -74,22 +50,25 @@ public class PdfValidatorService {
 				 marginValidator.validate(pdfRenderer, document, pageNr, validationErrors);
 				 }
 			 }
+			 msg.setFileName(getFileNameWithoutPath(msg.getFileName()));
 			 returnValidationResults(document, msg, notEmbeddedFontList, pageNumbers, validationErrors);
-
+			 createUrlForValidPdf(msg);
 			 document.close();
 			 return msg;
 		} catch (IOException e) {
 			msg.addMessage("Error validating PDF:" + e.getMessage());
+			msg.setPdfValid(false);
 			return msg;
 		}
 	}
 
-	private static boolean doesFileNameMatch(String filePath, Optional<String>fileName){
-		return fileName
-				.map(String::toLowerCase)
-				.map(nameOfFile -> nameOfFile.replaceFirst("[.][^.]+$", "")+ ".pdf")
-				.map(filePath::endsWith)
-				.orElse(true);
+	private static void createUrlForValidPdf(PdfMessages msg){
+		if(msg.isPdfValid()){
+			msg.setUrl(MvcUriComponentsBuilder
+					.fromMethodName(WordToPdfConverterController.class, "getFile",
+							msg.getFileName()).build().toString().replaceAll(" ","%20"));
+		}else msg.setUrl(" ");
+
 	}
 
 	/*
@@ -102,10 +81,9 @@ public class PdfValidatorService {
 		if(notEmbeddedFontList.isEmpty() && pageNumbers.isEmpty() && validationErrors.getHeader().isEmpty()
 				&& validationErrors.getFooter().isEmpty()) {
 			 msg.addMessage("Dokumentas atitiko reikalavimus");
-			 msg.setStatusCode(HttpStatus.OK.value());
+			 msg.setPdfValid(true);
 		 }else {
 			 msg.addMessage("Dokumentas reikalavimų neatitiko");
-			 msg.setStatusCode(HttpStatus.BAD_REQUEST.value());
 			 validatePdfDocumentNumberOfPages(document, msg);
 			 printNotEmbeddedFontList(notEmbeddedFontList, msg);
 			 printPageNumbersWhichHasBadFormat(validationErrors, pageNumbers, msg);

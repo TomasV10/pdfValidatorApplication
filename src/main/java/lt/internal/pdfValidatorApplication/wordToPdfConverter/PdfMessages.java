@@ -6,7 +6,12 @@ import java.util.List;
 public class PdfMessages {
     private String fileName;
     private List<String> messages = new ArrayList<>();
-    private int statusCode;
+    private boolean isPdfValid;
+    private boolean isConvertedToPdf;
+    private String url = " ";
+
+    public PdfMessages() {
+    }
 
     public PdfMessages(String fileName) {
         this.fileName = fileName;
@@ -33,25 +38,38 @@ public class PdfMessages {
         return messages;
     }
 
-    public List<String>addMessages(String anyMessage){
-        messages.add(anyMessage);
-        return messages;
+    public boolean isPdfValid() {
+        return isPdfValid;
     }
 
-    public int getStatusCode() {
-        return statusCode;
+    public void setPdfValid(boolean pdfValid) {
+        isPdfValid = pdfValid;
     }
 
-    public void setStatusCode(int statusCode) {
-        this.statusCode = statusCode;
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
+    public boolean isConvertedToPdf() {
+        return isConvertedToPdf;
+    }
+
+    public void setConvertedToPdf(boolean convertedToPdf) {
+        isConvertedToPdf = convertedToPdf;
     }
 
     @Override
     public String toString() {
         return "PdfMessages{" +
                 "fileName='" + fileName + '\'' +
-                ", errors=" + messages +
-                ", statusCode=" + statusCode +
+                ", messages=" + messages +
+                ", isPdfValid=" + isPdfValid +
+                ", isConvertedToPdf=" + isConvertedToPdf +
+                ", url='" + url + '\'' +
                 '}';
     }
 }

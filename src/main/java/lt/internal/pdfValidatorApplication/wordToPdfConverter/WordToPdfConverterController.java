@@ -1,6 +1,7 @@
 package lt.internal.pdfValidatorApplication.wordToPdfConverter;
 
 import lt.internal.pdfValidatorApplication.message.ResponseMessage;
+import lt.internal.pdfValidatorApplication.message.UploadMessage;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -11,9 +12,9 @@ import org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBui
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static java.util.Optional.*;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @RestController
@@ -28,41 +29,38 @@ public class WordToPdfConverterController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<ResponseMessage>uploadFile(@RequestParam("file") MultipartFile file){
+    public ResponseEntity<UploadMessage>uploadFile(@RequestParam("file") MultipartFile file){
         if(wordToPdfConverterService.hasDocOrDocxFormat(file)) {
             try {
                 wordToPdfConverterService.saveFiles(file);
                 message = "Uploaded the file successfully";
-                return ResponseEntity.status(HttpStatus.OK).body(new ResponseMessage(file.getOriginalFilename(),
-                        Collections.singletonList(message), HttpStatus.OK.value()));
+                return ResponseEntity.status(HttpStatus.OK).body(new UploadMessage(file.getOriginalFilename(),
+                        Collections.singletonList(message), true));
             } catch (Exception e) {
                 message = "Could not upload the file";
-                return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(new ResponseMessage(file.getOriginalFilename(),
-                        Collections.singletonList(message), HttpStatus.OK.value()));
+                return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED)
+                            .body(new UploadMessage(file.getOriginalFilename(),
+                                    Collections.singletonList(message), false));
             }
         }
         message = "Please upload a .doc or .docx file!";
-        return ResponseEntity.status(BAD_REQUEST).body(createResponseMessage(message, BAD_REQUEST.value()));
+        return ResponseEntity.status(BAD_REQUEST).body(createUploadMessage(file.getOriginalFilename(), message,
+                                                                                                    false));
     }
 
     @PostMapping(path = {"/files/convert","/files/convert/{fileName}"})
-    public ResponseEntity<List<ResponseMessage>> convertAllFiles(@RequestParam(value = "fileName",required = false ) String fileName){
-           List<PdfMessages>pdfMessages = WordToPdfConverterService.convertAllDocFilesInDirectoryToPdf(Optional.ofNullable(fileName));
-           List<ResponseMessage>responseMessages = pdfMessages.stream()
-                   .map(er -> {
-                       String nameOfFile = er.getFileName();
-                       List<String>msg = er.getMessages();
-                       int statusCode = er.getStatusCode();
-                       return new ResponseMessage(nameOfFile, msg, statusCode);
-                   })
-                   .collect(Collectors.toList());
-            return ResponseEntity.status(HttpStatus.OK)
+    public ResponseEntity<List<ResponseMessage>> convertAllFiles(@RequestParam(value = "fileName",required = false )
+                                                                             String fileName){
+        List<ResponseMessage> responseMessages = createResponseMessages(fileName);
+        return ResponseEntity.status(HttpStatus.OK)
                     .body(responseMessages);
     }
+
 
     @GetMapping("/files")
     public ResponseEntity<List<FileInfo>> getListOfFiles() {
         List<FileInfo> fileInfos = wordToPdfConverterService.retrieveAllFiles()
+                .filter(file -> file.getFileName().toString().endsWith(".pdf"))
                 .map(path -> {
             String filename = path.getFileName().toString();
             String url = MvcUriComponentsBuilder
@@ -77,12 +75,29 @@ public class WordToPdfConverterController {
     @ResponseBody
     public ResponseEntity<Resource> getFile(@PathVariable String filename) {
         Resource file = wordToPdfConverterService.retrieveFileAccordingGivenFileName(filename);
+        System.out.println(file);
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getFilename() + "\"").body(file);
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getFilename()
+                        + "\"").body(file);
     }
 
-    private ResponseMessage createResponseMessage(String message, int statusCode) {
-        return new ResponseMessage(Collections.singletonList(message), statusCode);
+    private UploadMessage createUploadMessage(String fileName, String message, boolean isFileUploaded) {
+        return new UploadMessage(fileName, Collections.singletonList(message), isFileUploaded);
+    }
+
+    private List<ResponseMessage> createResponseMessages(String fileName) {
+        List<PdfMessages>pdfMessages = WordToPdfConverterService.convertAllDocFilesInDirectoryToPdf(ofNullable(fileName));
+        List<ResponseMessage>responseMessages = pdfMessages.stream()
+                .map(er -> {
+                    String nameOfFile = er.getFileName();
+                    List<String>msg = er.getMessages();
+                    boolean isValid = er.isPdfValid();
+                    boolean isConvertedToPdf = er.isConvertedToPdf();
+                    String url = er.getUrl();
+                    return new ResponseMessage(nameOfFile, msg, isValid, isConvertedToPdf, url);
+                })
+                .collect(Collectors.toList());
+        return responseMessages;
     }
 
 }

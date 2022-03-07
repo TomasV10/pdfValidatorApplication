@@ -19,7 +19,7 @@ public class PdfValidatorApplication implements CommandLineRunner {
 	}
 
 	@Override
-	public void run(String... args) throws Exception {
+	public void run(String... args) {
 		filesStorageService.deleteUploadsFolder();
 		filesStorageService.createDirectoryForUploadedFiles();
 	}
