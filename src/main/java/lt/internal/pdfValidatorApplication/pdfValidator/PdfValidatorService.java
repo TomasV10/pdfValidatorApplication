@@ -18,8 +18,6 @@ import org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBui
 
 @Service
 public class PdfValidatorService {
-
-	private static final String ALLOWED_EXTENSION = ".pdf";
 	private static final int ALLOWED_NUMBER_OF_PAGES = 349;
 	private static final int A4_FORMAT_WIDTH = 595;
 	private static final int A4_FORMAT_HEIGHT = 842;
@@ -61,6 +59,10 @@ public class PdfValidatorService {
 			return msg;
 		}
 	}
+
+	/*
+	Creates URL for validated Pdf files
+	 */
 
 	private static void createUrlForValidPdf(PdfMessages msg){
 		if(msg.isPdfValid()){

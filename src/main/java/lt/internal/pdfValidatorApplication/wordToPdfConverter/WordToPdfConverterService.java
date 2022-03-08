@@ -5,7 +5,6 @@ import com.jacob.com.Dispatch;
 import lt.internal.pdfValidatorApplication.pdfValidator.PdfValidatorService;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.FileSystemUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,6 +27,10 @@ public class WordToPdfConverterService implements FilesStorageService{
     private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList(".doc", ".docx"); //List of allowed extensions
     private static final Path root = Paths.get("uploads").toAbsolutePath();
 
+    /*
+    Creates "uploads" directory when application is started
+     */
+
     @Override
     public void createDirectoryForUploadedFiles() {
         try {
@@ -36,10 +39,19 @@ public class WordToPdfConverterService implements FilesStorageService{
             throw new RuntimeException("Could not initialize folder for upload!");
         }
     }
+
+    /*
+    Deletes "uploads" directory when application is started
+     */
+
     @Override
     public void deleteUploadsFolder() {
         FileSystemUtils.deleteRecursively(root.toFile());
     }
+
+    /*
+    Saves file to "uploads" directory
+     */
 
     public void saveFiles(MultipartFile file){
         try {
@@ -48,6 +60,10 @@ public class WordToPdfConverterService implements FilesStorageService{
             throw new RuntimeException("Could not store the file. Error: " + e.getMessage());
         }
     }
+
+    /*
+    Retrieves file according given name
+     */
 
     public Resource retrieveFileAccordingGivenFileName(String filename) {
         try {
@@ -59,20 +75,42 @@ public class WordToPdfConverterService implements FilesStorageService{
         }
     }
 
-    public Stream<Path> retrieveAllFiles() {
+    /*
+    Retrieves all Pdf files in the "uploads" directory
+     */
+
+    public Stream<Path> retrieveAllPdfFiles() {
         try {
             return Files.walk(this.root, 1)
-                    .filter(path -> !path.equals(this.root)).map(this.root::relativize);
+                    .filter(path -> !path.equals(this.root))
+                    .map(this.root::relativize)
+                    .filter(file -> file.getFileName().toString().endsWith(".pdf"));
         } catch (IOException e) {
             throw new RuntimeException("Could not load the files!");
         }
     }
+
+    /*
+    Validating format of upload file
+     */
 
     public boolean hasDocOrDocxFormat(MultipartFile file){
        return ALLOWED_EXTENSIONS.stream()
                 .map(String::toLowerCase)
                 .anyMatch(file.getOriginalFilename()::endsWith);
     }
+
+    /*
+    Deletes file if exist
+     */
+
+    public boolean deleteFileIfExist(String fileName) throws IOException {
+       return Files.deleteIfExists(Paths.get("uploads" + "/" + fileName).toAbsolutePath());
+    }
+
+    /*
+    This is the main conversion method
+     */
 
     public static List<PdfMessages> convertAllDocFilesInDirectoryToPdf(Optional<String>fileName) {
         isBaseDirectoryValid(root);
@@ -89,13 +127,17 @@ public class WordToPdfConverterService implements FilesStorageService{
 
             printConversionsResults(counter);
 
-            return doesFileExist(messagesList,fileName);
+            return doesMessageListEmpty(messagesList,fileName);
         }catch (IOException e) {
             throw new IllegalArgumentException(e);
         }
     }
 
-    public static PdfMessages convertWordToPdf(String source, ConversionsCounter counter) {
+    /*
+    this method has all conversion doc to pdf logic
+     */
+
+    private static PdfMessages convertWordToPdf(String source, ConversionsCounter counter) {
         PdfMessages msg = new PdfMessages(getFileNameWithoutPath(source));
         System.out.println("Word to PDF started...");
         long start = System.currentTimeMillis();
@@ -123,15 +165,22 @@ public class WordToPdfConverterService implements FilesStorageService{
         }
     }
 
+    /*
+    Converts doc & docx files to PDF and validates PDF files
+     */
+
     private static PdfMessages convertAndValidatePdf(String file, ConversionsCounter counter){
         PdfMessages conversion = convertWordToPdf(file, counter);
-        System.out.println(conversion);
         if(conversion.isConvertedToPdf()){
             return PdfValidatorService.validatePdfDocument(conversion);
         }else return conversion;
     }
 
-    private static List<PdfMessages> doesFileExist(List<PdfMessages>messagesList, Optional<String>fileName){
+    /*
+    This method checks the message list. If it's empty, that means, file with given name does not exist
+     */
+
+    private static List<PdfMessages> doesMessageListEmpty(List<PdfMessages>messagesList, Optional<String>fileName){
         PdfMessages msg = new PdfMessages(fileName.toString());
         if(messagesList.isEmpty() && fileName != null){
             msg.setFileName(fileName.get());
@@ -141,6 +190,10 @@ public class WordToPdfConverterService implements FilesStorageService{
         }else return messagesList;
     }
 
+    /*
+    Check if file exists
+     */
+
     private Resource checkIfFileExist(Resource resource) {
         System.out.println(resource);
         if (resource.exists() || resource.isReadable()) {
@@ -149,6 +202,10 @@ public class WordToPdfConverterService implements FilesStorageService{
             throw new RuntimeException("Could not read the file!");
         }
     }
+
+    /*
+     * If file name is given, then checks if it match to with one of files in the uploads directory.
+     */
 
     private static boolean doesFileNameMatch(String filePath, Optional<String>fileName){
         return fileName
