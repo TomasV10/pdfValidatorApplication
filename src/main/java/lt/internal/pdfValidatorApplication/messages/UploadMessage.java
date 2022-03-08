@@ -1,4 +1,4 @@
-package lt.internal.pdfValidatorApplication.message;
+package lt.internal.pdfValidatorApplication.messages;
 
 import java.util.List;
 
