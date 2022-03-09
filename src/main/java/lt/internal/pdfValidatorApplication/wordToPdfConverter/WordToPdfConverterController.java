@@ -8,7 +8,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -71,17 +70,9 @@ public class WordToPdfConverterController {
             }
     }
 
-
     @GetMapping("/files")
-    public ResponseEntity<List<FileInfo>> getListOfAllPdfFiles() {
-        List<FileInfo> fileInfos = wordToPdfConverterService.retrieveAllPdfFiles()
-                .map(path -> {
-            String filename = path.getFileName().toString();
-            String url = MvcUriComponentsBuilder
-                    .fromMethodName(WordToPdfConverterController.class, "getFile",
-                            path.getFileName().toString()).build().toString().replaceAll(" ","%20");
-            return new FileInfo(filename, url);
-        }).collect(Collectors.toList());
+    public ResponseEntity<List<DocFileInfo>> getListOfAllFiles() throws IOException {
+        List<DocFileInfo> fileInfos = wordToPdfConverterService.getAllFiles();
         return ResponseEntity.status(OK).body(fileInfos);
     }
 
@@ -104,6 +95,7 @@ public class WordToPdfConverterController {
 
     private List<ResponseMessage> createResponseMessages(String fileName) {
         List<PdfMessages>pdfMessages = WordToPdfConverterService.convertAllDocFilesInDirectoryToPdf(ofNullable(fileName));
+        System.out.println(pdfMessages);
         List<ResponseMessage>responseMessages = pdfMessages.stream()
                 .map(er -> {
                     String nameOfFile = er.getFileName();
@@ -116,4 +108,5 @@ public class WordToPdfConverterController {
                 .collect(Collectors.toList());
         return responseMessages;
     }
+
 }

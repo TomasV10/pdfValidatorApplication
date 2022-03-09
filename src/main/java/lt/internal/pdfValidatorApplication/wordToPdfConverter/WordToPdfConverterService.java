@@ -17,7 +17,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 public class WordToPdfConverterService implements FilesStorageService{
@@ -76,21 +75,6 @@ public class WordToPdfConverterService implements FilesStorageService{
     }
 
     /*
-    Retrieves all Pdf files in the "uploads" directory
-     */
-
-    public Stream<Path> retrieveAllPdfFiles() {
-        try {
-            return Files.walk(this.root, 1)
-                    .filter(path -> !path.equals(this.root))
-                    .map(this.root::relativize)
-                    .filter(file -> file.getFileName().toString().endsWith(".pdf"));
-        } catch (IOException e) {
-            throw new RuntimeException("Could not load the files!");
-        }
-    }
-
-    /*
     Validating format of upload file
      */
 
@@ -132,6 +116,50 @@ public class WordToPdfConverterService implements FilesStorageService{
             throw new IllegalArgumentException(e);
         }
     }
+
+    /*
+    Retrieves all files which are in directory
+     */
+
+    public List<DocFileInfo> getAllFiles() throws IOException {
+        return
+                Files.walk(root, 1)
+                        .filter(p -> !Files.isDirectory(p))
+                        .map(p -> p.toString().toLowerCase())
+                        .filter(WordToPdfConverterService::isOneOfAllowedExtensions)
+                        .map(this::collectDocFileInfo)
+                        .collect(Collectors.toList());
+    }
+
+    /*
+    collects information about doc or docx file.
+     */
+
+    private DocFileInfo collectDocFileInfo(String fileName)  {
+        DocFileInfo docFileInfo = new DocFileInfo(getFileNameWithoutPath(fileName));
+        String pdfFileName = changeExtensionToPdf(fileName);
+        PdfMessages pdfMessages = PdfValidatorService.validatePdfDocument(new PdfMessages(pdfFileName));
+        boolean isConvertedToPdf = isDocConvertedToPdf(pdfFileName);
+        docFileInfo.setConvertedToPdf(isConvertedToPdf);
+        if(isConvertedToPdf){
+            docFileInfo.setPdfFileName(getFileNameWithoutPath(pdfFileName));
+            boolean isPdfValid = pdfMessages.isPdfValid();
+            docFileInfo.setPdfValid(isPdfValid);
+            if(isPdfValid) docFileInfo.setUrl(pdfMessages.getUrl());
+            else docFileInfo.setUrl(" ");
+        }
+        return docFileInfo;
+    }
+
+
+    /*
+    checks if file is converted to PDF or not.
+     */
+
+    private boolean isDocConvertedToPdf(String fileName){
+        return Files.exists(Paths.get(fileName));
+    }
+
 
     /*
     this method has all conversion doc to pdf logic
@@ -176,6 +204,7 @@ public class WordToPdfConverterService implements FilesStorageService{
         }else return conversion;
     }
 
+
     /*
     This method checks the message list. If it's empty, that means, file with given name does not exist
      */
@@ -195,7 +224,6 @@ public class WordToPdfConverterService implements FilesStorageService{
      */
 
     private Resource checkIfFileExist(Resource resource) {
-        System.out.println(resource);
         if (resource.exists() || resource.isReadable()) {
             return resource;
         } else {
@@ -289,7 +317,6 @@ public class WordToPdfConverterService implements FilesStorageService{
 
     private static Dispatch openingDocFile(String source, ActiveXComponent app) {
         Dispatch docs = app.getProperty("Documents").toDispatch();
-        System.out.println("Open document:" + source);
         Dispatch doc = Dispatch.call(docs, "Open", source, false, true).toDispatch();
         return doc;
     }
