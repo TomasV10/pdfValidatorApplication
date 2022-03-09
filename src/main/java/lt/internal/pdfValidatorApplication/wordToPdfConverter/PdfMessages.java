@@ -65,7 +65,7 @@ public class PdfMessages {
     @Override
     public String toString() {
         return "PdfMessages{" +
-                "fileName='" + fileName + '\'' +
+                ", fileName='" + fileName + '\'' +
                 ", messages=" + messages +
                 ", isPdfValid=" + isPdfValid +
                 ", isConvertedToPdf=" + isConvertedToPdf +

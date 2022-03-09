@@ -49,7 +49,7 @@ public class PdfValidatorService {
 				 }
 			 }
 			 msg.setFileName(getFileNameWithoutPath(msg.getFileName()));
-			 returnValidationResults(document, msg, notEmbeddedFontList, pageNumbers, validationErrors);
+			 validationResults(document, msg, notEmbeddedFontList, pageNumbers, validationErrors);
 			 createUrlForValidPdf(msg);
 			 document.close();
 			 return msg;
@@ -72,12 +72,12 @@ public class PdfValidatorService {
 		}else msg.setUrl(" ");
 
 	}
-
+	
 	/*
 	 * This method is responsible for result printing.
 	 */
 
-	private static void returnValidationResults(PDDocument document, PdfMessages msg, Set<String> notEmbeddedFontList,
+	private static void validationResults(PDDocument document, PdfMessages msg, Set<String> notEmbeddedFontList,
 												List<Integer> pageNumbers, ValidationErrors validationErrors) {
 
 		if(notEmbeddedFontList.isEmpty() && pageNumbers.isEmpty() && validationErrors.getHeader().isEmpty()
@@ -92,6 +92,7 @@ public class PdfValidatorService {
 
 		 }
 	}
+
 
 	/*
 	 * Deletes path of file, leaving file name
@@ -116,6 +117,7 @@ public class PdfValidatorService {
 		}else printPagesWhichHasBadTopOrBottomMargins(validationErrors, msg);
 	}
 
+
 	/*
 	 * Method prints error message to .txt file
 	 */
@@ -128,6 +130,7 @@ public class PdfValidatorService {
 			msg.addMessage("Klaida! Puslapių " + validationErrors.getFooter().toString() + " apatinė paraštė neatitinka formato");
 		}
 	}
+
 
 	/*
 	 * Returns PDPage object
