@@ -95,7 +95,6 @@ public class WordToPdfConverterController {
 
     private List<ResponseMessage> createResponseMessages(String fileName) {
         List<PdfMessages>pdfMessages = WordToPdfConverterService.convertAllDocFilesInDirectoryToPdf(ofNullable(fileName));
-        System.out.println(pdfMessages);
         List<ResponseMessage>responseMessages = pdfMessages.stream()
                 .map(er -> {
                     String nameOfFile = er.getFileName();
