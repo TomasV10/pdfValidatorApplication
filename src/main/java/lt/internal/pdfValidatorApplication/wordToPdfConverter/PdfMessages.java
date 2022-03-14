@@ -1,5 +1,7 @@
 package lt.internal.pdfValidatorApplication.wordToPdfConverter;
 
+import lt.internal.pdfValidatorApplication.pdfValidator.PdfValidationResult;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,12 +11,52 @@ public class PdfMessages {
     private boolean isPdfValid;
     private boolean isConvertedToPdf;
     private String url = " ";
+    private PdfConversionResult resultsConversion;
+    private PdfValidationResult resultsValidation;
 
-    public PdfMessages() {
+    public PdfMessages(List<String> messages, boolean isPdfValid, String url) {
+        this.messages = messages;
+        this.isPdfValid = isPdfValid;
+        this.url = url;
+    }
+
+    public PdfMessages(String fileName, List<String> messages, boolean isConvertedToPdf) {
+        this.fileName = fileName;
+        this.messages = messages;
+        this.isConvertedToPdf = isConvertedToPdf;
+    }
+
+    public PdfMessages(String fileName, List<String> messages, boolean isPdfValid, boolean isConvertedToPdf, String url) {
+        this.fileName = fileName;
+        this.messages = messages;
+        this.isPdfValid = isPdfValid;
+        this.isConvertedToPdf = isConvertedToPdf;
+        this.url = url;
+    }
+
+    public PdfMessages(PdfConversionResult resultsConversion, PdfValidationResult resultsValidation) {
+        this.resultsConversion = resultsConversion;
+        this.resultsValidation = resultsValidation;
     }
 
     public PdfMessages(String fileName) {
         this.fileName = fileName;
+    }
+
+    public PdfConversionResult getResultsConversion() {
+        return resultsConversion;
+    }
+
+    public void setResultsConversion(PdfConversionResult resultsConversion) {
+        this.resultsConversion = resultsConversion;
+    }
+
+    public PdfValidationResult getResultsValidation() {
+        return resultsValidation;
+    }
+
+    public void setResultsValidation(PdfValidationResult resultsValidation) {
+        this.resultsValidation = resultsValidation;
     }
 
     public String getFileName() {
@@ -60,6 +102,13 @@ public class PdfMessages {
 
     public void setConvertedToPdf(boolean convertedToPdf) {
         isConvertedToPdf = convertedToPdf;
+    }
+
+
+    public PdfMessages mapToPdfMessage(){
+        return new PdfMessages(getResultsConversion().getFileName(),
+                getResultsConversion().getMessages(), getResultsValidation().isPdfValid(),
+                getResultsConversion().isConvertedToPdf(), getResultsValidation().getUrl());
     }
 
     @Override
