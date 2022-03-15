@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.FileSystemUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
@@ -285,7 +284,7 @@ public class WordToPdfConverterService implements FilesStorageService{
      * @param doc - doc file
      */
 
-    private static void saveConvertedFile(String pathOfFileWithPdfExtension, Dispatch doc) {
+    private static void saveConvertedFile(String pathOfFileWithPdfExtension, Dispatch doc) throws IOException {
         removeFileIfAlreadyExist(pathOfFileWithPdfExtension);
         System.out.println("Convert document to PDF:" + pathOfFileWithPdfExtension);
         Dispatch.call(doc, "SaveAs", pathOfFileWithPdfExtension, WD_FORMAT_PDF);
@@ -297,11 +296,8 @@ public class WordToPdfConverterService implements FilesStorageService{
      * Deletes file if exist
      */
 
-    private static void removeFileIfAlreadyExist(String pathOfFileWithPdfExtension) {
-        File tofile = new File(pathOfFileWithPdfExtension);
-        if (tofile.exists()) {
-            tofile.delete();
-        }
+    private static void removeFileIfAlreadyExist(String pathOfFileWithPdfExtension) throws IOException {
+        Files.deleteIfExists(Paths.get(pathOfFileWithPdfExtension));
     }
 
 
@@ -310,7 +306,7 @@ public class WordToPdfConverterService implements FilesStorageService{
      * @param source is .doc or .docx file name
      */
 
-    public static String changeExtensionToPdf(String source) {
+    private static String changeExtensionToPdf(String source) {
         return source.replaceFirst("[.][^.]+$", "")+ ".pdf";
     }
 
