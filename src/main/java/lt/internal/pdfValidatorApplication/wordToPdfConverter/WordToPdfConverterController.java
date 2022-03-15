@@ -35,7 +35,7 @@ public class WordToPdfConverterController {
                  Arrays.stream(files)
                     .map(this::getUploadMessage)
                     .collect(Collectors.toList());
-        return ResponseEntity.status(EXPECTATION_FAILED)
+        return ResponseEntity.status(OK)
                             .body(messages);
     }
 
